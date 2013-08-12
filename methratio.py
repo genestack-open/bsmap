@@ -1,4 +1,5 @@
-import sys, time, os, array, optparse
+#!/usr/bin/python
+import sys, time, os, array, optparse, cStringIO
 usage = "usage: %prog [options] BSMAP_MAPPING_FILES"
 parser = optparse.OptionParser(usage=usage)
 
@@ -89,16 +90,18 @@ def get_alignment(line):
     if sam_format and insert > 0: seq = seq[:int(col[7])-1-pos] # remove overlapped regions in paired hits, SAM format only
     return (seq, strand[0], cr, pos)
 
-ref, cr, seq = {}, '', ''
+ref, cr, seq = {}, '', cStringIO.StringIO()
 disp('reading reference %s ...' % options.reffile)
 for line in open(options.reffile):
     if line[0] == '>': 
         if any(cr): 
-            if len(options.chroms) == 0 or cr in options.chroms: ref[cr] = seq.upper()
-        cr, seq = line[1:-1].split()[0], ''
-    else: seq += line.strip()
+            if len(options.chroms) == 0 or cr in options.chroms: ref[cr] = seq.getvalue().upper()
+            seq.close()
+        cr, seq = line[1:-1].split()[0], cStringIO.StringIO()
+    else: seq.write(line.strip())
 
-if len(options.chroms) == 0 or cr in options.chroms: ref[cr] = seq.upper()
+if len(options.chroms) == 0 or cr in options.chroms: ref[cr] = seq.getvalue().upper()
+seq.close()
 del seq
 
 meth, depth, coverage, meth1, depth1 = {}, {}, {}, {}, {}
